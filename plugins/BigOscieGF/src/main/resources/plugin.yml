@@ -1,0 +1,17 @@
+name: BigOscieGF
+version: ${version}
+main: com.rxspicy.bigosciegf.BigOscieGFPlugin
+api-version: '26.2'
+author: RXSpicy
+description: Citizens-powered AI goth companion NPC for BigOscie49.
+depend: [Citizens]
+commands:
+  bigosciegf:
+    description: Manage BigOscie's GF companion NPC.
+    usage: /bigosciegf <spawn|follow|stay|come|skin|name|memory|remember|memories|forget|ai|aitest|say|status|reload>
+    aliases: [bogf, gfbot]
+    permission: bigosciegf.admin
+permissions:
+  bigosciegf.admin:
+    description: Manage the BigOscieGF NPC.
+    default: op

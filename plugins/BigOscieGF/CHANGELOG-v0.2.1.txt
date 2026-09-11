@@ -1,0 +1,31 @@
+BigOscieGF v0.2.1 — Luna-first chat + Nyx visual polish
+
+AI / conversation
+- GPT-5.6 Luna remains the default OpenAI Responses API model.
+- Replaced per-player chat silos with one shared ordered conversation context.
+- Serialized AI requests to prevent out-of-order replies during group chat.
+- Removed hard-coded Gravity Hammer context; hammer reactions default OFF.
+- Luna can choose [[SILENT]] for event reactions that do not deserve an interruption.
+- Luna-managed long-term owner memory can be marked in the same response with a hidden [[MEMORY: ...]] directive; no extra API call.
+- Reduced default chat cooldown from 5s to 1s.
+- Expanded recent shared context from 8 to 18 lines.
+- Added /bigosciegf aitest and richer /bigosciegf status diagnostics.
+
+Memory
+- Added /bigosciegf memory list
+- Added /bigosciegf memory clear recent|persistent|all
+- Legacy remember/memories/forget commands retained.
+- Legacy regex auto-learning disabled by default when Luna-managed memory is enabled.
+
+Visual
+- Canonical character name defaults to Nyx.
+- Citizens NPC can be renamed to Nyx while tracked by saved Citizens ID.
+- Chat prefix can use the canonical name.
+- Speech arm swing + portal particles.
+- Owner-directed replies can emit one heart particle.
+- Existing username / MineSkin / signed texture skin support retained.
+
+Migration
+- Existing v0.2.0 config is preserved and upgraded automatically.
+- Existing API key, skin configuration, home location, owner and other settings are not replaced.
+- The old Gravity-Hammer-heavy personality is rewritten only when detected.

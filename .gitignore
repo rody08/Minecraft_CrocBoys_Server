@@ -1,0 +1,48 @@
+# Secrets and machine-local connection settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.ppk
+*.kdbx
+secrets/
+.pebblehost/
+
+# Build output
+artifacts/*
+!artifacts/README.md
+**/target/
+**/build/
+**/out/
+*.class
+
+# Local IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Live server data that must not be committed
+world/
+world_nether/
+world_the_end/
+logs/
+crash-reports/
+backups/
+cache/
+libraries/
+versions/
+usercache.json
+usernamecache.json
+banned-ips.json
+banned-players.json
+ops.json
+whitelist.json
+*.db
+*.sqlite
+*.sqlite3
+
+# Locally built or downloaded Java archives
+*.jar
