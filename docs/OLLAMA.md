@@ -7,12 +7,12 @@ BigOscieGF on PebbleHost
   -> HTTPS Cloudflare Tunnel URL
   -> authenticated relay on 127.0.0.1:11435
   -> Ollama on 127.0.0.1:11434
-  -> qwen2.5-light on the RX 6900 XT
+  -> Magnum v4 12B Q5_K_M on the RX 6900 XT
 ```
 
 Ollama itself stays bound to localhost. The relay exposes only `/v1/responses`,
 requires a random bearer token, limits request size, disables streaming, and pins
-all requests to `qwen2.5-light`.
+all requests to the configured Nyx model.
 
 ## Local commands
 
@@ -37,6 +37,15 @@ Stop both bridge processes:
 The start command prints the endpoint for BigOscieGF. The secret relay token is
 stored only in the Git-ignored `.env` file.
 
+`NYX_OLLAMA_MODEL` selects Nyx's model. The scripts temporarily accept the old
+`BIGOSCIE_OLLAMA_MODEL` name during migration, but new configuration should use
+the Nyx-specific name.
+
+Nyx uses `hf.co/bartowski/magnum-v4-12b-GGUF:Q5_K_M`, a Q5 quantization of the
+Magnum v4 12B conversational/prose model. The model is selected specifically for
+character dialogue; Nyx's exact identity and behavior remain in the plugin's
+reviewable `ai.personality` and per-request instructions.
+
 ## BigOscieGF configuration
 
 The live plugin configuration needs:
@@ -46,7 +55,7 @@ ai:
   enabled: true
   provider: "ollama"
   endpoint: "https://GENERATED.trycloudflare.com/v1/responses"
-  model: "qwen2.5-light"
+  model: "hf.co/bartowski/magnum-v4-12b-GGUF:Q5_K_M"
   api-key: "LOCAL_RELAY_TOKEN"
 ```
 

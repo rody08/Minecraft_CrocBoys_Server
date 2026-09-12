@@ -24,21 +24,28 @@ function Read-DotEnv([string] $Path) {
 
 $settings = Read-DotEnv $envPath
 $token = $settings['BIGOSCIE_OLLAMA_RELAY_TOKEN']
-$model = $settings['BIGOSCIE_OLLAMA_MODEL']
+$model = $settings['NYX_OLLAMA_MODEL']
+if ([string]::IsNullOrWhiteSpace($model)) {
+    $model = $settings['BIGOSCIE_OLLAMA_MODEL']
+}
 $tunnelUrl = (Get-Content -Raw -LiteralPath $tunnelPath).Trim().TrimEnd('/')
 if ([string]::IsNullOrWhiteSpace($token) -or $token.Length -lt 32) {
     throw 'The local relay token is missing or too short.'
 }
 if ([string]::IsNullOrWhiteSpace($model)) {
-    throw 'BIGOSCIE_OLLAMA_MODEL is missing from .env.'
+    throw 'NYX_OLLAMA_MODEL is missing from .env.'
 }
 if ($tunnelUrl -notmatch '^https://[a-z0-9-]+\.trycloudflare\.com$') {
     throw 'The current Quick Tunnel URL is missing or invalid.'
 }
 
 $source = Get-Content -LiteralPath $SourceConfig
+$sourceVersion = @($source | Where-Object { $_ -match '^config-version:' })
+if ($sourceVersion.Count -gt 1) {
+    throw "Expected at most one config-version setting; found $($sourceVersion.Count)."
+}
 $output = [Collections.Generic.List[string]]::new()
-$output.Add('config-version: "0.2.2"')
+$output.Add($(if ($sourceVersion.Count -eq 1) { $sourceVersion[0] } else { 'config-version: "0.2.2"' }))
 $output.Add('')
 $inAi = $false
 $counts = @{ enabled = 0; endpoint = 0; model = 0; apiKey = 0 }

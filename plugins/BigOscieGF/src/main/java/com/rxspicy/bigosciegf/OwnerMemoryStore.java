@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Locale;
 
 final class OwnerMemoryStore {
-    private final BigOscieGFPlugin plugin;
+    private final NyxPlugin plugin;
     private final Path file;
     private final List<String> facts = new ArrayList<>();
 
-    OwnerMemoryStore(BigOscieGFPlugin plugin) {
+    OwnerMemoryStore(NyxPlugin plugin) {
         this.plugin = plugin;
         this.file = plugin.getDataFolder().toPath().resolve("owner-memory.txt");
         load();

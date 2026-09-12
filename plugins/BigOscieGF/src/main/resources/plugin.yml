@@ -1,17 +1,21 @@
 name: BigOscieGF
 version: ${version}
-main: com.rxspicy.bigosciegf.BigOscieGFPlugin
+main: com.rxspicy.bigosciegf.NyxPlugin
 api-version: '26.2'
 author: RXSpicy
 description: Citizens-powered AI goth companion NPC for BigOscie49.
-depend: [Citizens]
+depend: [Citizens, WorldEdit]
+softdepend: [EliteMobs]
 commands:
   bigosciegf:
     description: Manage BigOscie's GF companion NPC.
-    usage: /bigosciegf <spawn|follow|stay|come|skin|name|memory|remember|memories|forget|ai|aitest|say|status|reload>
-    aliases: [bogf, gfbot]
+    usage: /bigosciegf <spawn|follow|stay|come|skin|name|trust|build|memory|remember|memories|forget|ai|aitest|say|status|reload>
+    aliases: [nyx, bogf, gfbot]
     permission: bigosciegf.admin
 permissions:
   bigosciegf.admin:
     description: Manage the BigOscieGF NPC.
+    default: op
+  nyx.build:
+    description: Ask Nyx to prepare and paste validated building schematics.
     default: op

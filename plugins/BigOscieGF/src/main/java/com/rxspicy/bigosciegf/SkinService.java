@@ -6,9 +6,9 @@ import net.citizensnpcs.trait.SkinTrait;
 import java.util.Locale;
 
 final class SkinService {
-    private final BigOscieGFPlugin plugin;
+    private final NyxPlugin plugin;
 
-    SkinService(BigOscieGFPlugin plugin) {
+    SkinService(NyxPlugin plugin) {
         this.plugin = plugin;
     }
 

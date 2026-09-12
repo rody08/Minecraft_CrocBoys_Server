@@ -115,7 +115,9 @@ def main() -> int:
     args = parser.parse_args()
     settings = load_env(args.env_file.resolve())
     token = settings.get("BIGOSCIE_OLLAMA_RELAY_TOKEN", "")
-    model = settings.get("BIGOSCIE_OLLAMA_MODEL", "qwen2.5-light")
+    model = settings.get("NYX_OLLAMA_MODEL") or settings.get(
+        "BIGOSCIE_OLLAMA_MODEL", "hf.co/bartowski/magnum-v4-12b-GGUF:Q5_K_M"
+    )
     port = int(settings.get("BIGOSCIE_OLLAMA_RELAY_PORT", "11435"))
     if len(token) < 32:
         raise SystemExit("BIGOSCIE_OLLAMA_RELAY_TOKEN must contain at least 32 characters")

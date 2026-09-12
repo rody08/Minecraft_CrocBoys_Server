@@ -1,0 +1,11 @@
+# Reviewed against the live server on 2026-09-11.
+# Keep procedural structures in the survival dimensions and out of worlds whose
+# terrain/layout is owned by EliteMobs or the custom EliteTower plugin.
+New worlds spawn structures: false
+Valid worlds:
+  world: true
+  world_nether: true
+  world_the_end: true
+  em_adventurers_guild: false
+  elite_tower: false
+  elite_tower_floor_2: false

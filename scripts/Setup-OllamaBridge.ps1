@@ -10,8 +10,10 @@ if (-not (Test-Path -LiteralPath $envPath -PathType Leaf)) {
 }
 
 $content = Get-Content -Raw -LiteralPath $envPath
-if ($content -notmatch '(?m)^BIGOSCIE_OLLAMA_MODEL=') {
-    $content += "`r`nBIGOSCIE_OLLAMA_MODEL=qwen2.5-light"
+if ($content -notmatch '(?m)^NYX_OLLAMA_MODEL=') {
+    $legacyModel = [regex]::Match($content, '(?m)^BIGOSCIE_OLLAMA_MODEL=(.+)$')
+    $modelValue = if ($legacyModel.Success) { $legacyModel.Groups[1].Value.Trim() } else { 'hf.co/bartowski/magnum-v4-12b-GGUF:Q5_K_M' }
+    $content += "`r`nNYX_OLLAMA_MODEL=$modelValue"
 }
 if ($content -notmatch '(?m)^BIGOSCIE_OLLAMA_RELAY_PORT=') {
     $content += "`r`nBIGOSCIE_OLLAMA_RELAY_PORT=11435"
@@ -31,7 +33,12 @@ if (-not $tokenMatch.Success -or [string]::IsNullOrWhiteSpace($tokenMatch.Groups
     } else {
         $content += "`r`nBIGOSCIE_OLLAMA_RELAY_TOKEN=$token"
     }
-    Set-Content -LiteralPath $envPath -Value $content -NoNewline
+}
+Set-Content -LiteralPath $envPath -Value $content -NoNewline
+
+$configuredModel = [regex]::Match($content, '(?m)^NYX_OLLAMA_MODEL=(.+)$').Groups[1].Value.Trim()
+if ([string]::IsNullOrWhiteSpace($configuredModel)) {
+    throw 'NYX_OLLAMA_MODEL is missing from .env.'
 }
 
 $version = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/version' -TimeoutSec 5
@@ -40,11 +47,11 @@ try {
         -Method Post `
         -Uri 'http://127.0.0.1:11434/api/show' `
         -ContentType 'application/json' `
-        -Body '{"model":"qwen2.5-light"}' `
+        -Body (@{ model = $configuredModel } | ConvertTo-Json) `
         -TimeoutSec 10
 } catch {
-    throw 'The qwen2.5-light model is not installed.'
+    throw "The configured Nyx model '$configuredModel' is not installed."
 }
 
-Write-Host "Ollama $($version.version) and qwen2.5-light are ready."
+Write-Host "Ollama $($version.version) and $configuredModel are ready."
 Write-Host 'A strong relay token is stored only in the Git-ignored .env file.'

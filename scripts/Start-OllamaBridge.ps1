@@ -28,7 +28,10 @@ function Read-DotEnv([string] $Path) {
 $settings = Read-DotEnv $envPath
 $token = $settings['BIGOSCIE_OLLAMA_RELAY_TOKEN']
 $port = [int]$settings['BIGOSCIE_OLLAMA_RELAY_PORT']
-$model = $settings['BIGOSCIE_OLLAMA_MODEL']
+$model = $settings['NYX_OLLAMA_MODEL']
+if ([string]::IsNullOrWhiteSpace($model)) {
+    $model = $settings['BIGOSCIE_OLLAMA_MODEL']
+}
 if ([string]::IsNullOrWhiteSpace($token) -or $token.Length -lt 32) {
     throw 'Run scripts/Setup-OllamaBridge.ps1 to generate the relay token.'
 }
@@ -65,7 +68,7 @@ $tunnelOut = Join-Path $localState 'cloudflared.out.log'
 $tunnelError = Join-Path $localState 'cloudflared.error.log'
 $tunnelProcess = Start-Process `
     -FilePath $cloudflared `
-    -ArgumentList @('tunnel', '--url', "http://127.0.0.1:$port") `
+    -ArgumentList @('tunnel', '--protocol', 'http2', '--url', "http://127.0.0.1:$port") `
     -WindowStyle Hidden `
     -RedirectStandardOutput $tunnelOut `
     -RedirectStandardError $tunnelError `

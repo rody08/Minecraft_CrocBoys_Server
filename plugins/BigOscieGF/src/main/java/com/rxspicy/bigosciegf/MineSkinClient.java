@@ -20,10 +20,10 @@ final class MineSkinClient {
     private static final Pattern RESPONSE_UUID = Pattern.compile("\\\"uuid\\\"\\s*:\\s*\\\"([0-9a-fA-F-]{32,36})\\\"");
     private static final Pattern ERROR = Pattern.compile("\\\"message\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"\\\\])*)\\\"");
 
-    private final BigOscieGFPlugin plugin;
+    private final NyxPlugin plugin;
     private final HttpClient http;
 
-    MineSkinClient(BigOscieGFPlugin plugin) {
+    MineSkinClient(NyxPlugin plugin) {
         this.plugin = plugin;
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     }
@@ -40,7 +40,7 @@ final class MineSkinClient {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(endpoint + uuid))
                 .timeout(Duration.ofSeconds(20))
                 .header("Accept", "application/json")
-                .header("User-Agent", "BigOscieGF/0.2.0")
+                .header("User-Agent", "Nyx/0.5.0")
                 .GET();
         String apiKey = plugin.getConfig().getString("npc.skin.mineskin-api-key", "");
         if (apiKey == null || apiKey.isBlank()) apiKey = System.getenv("MINESKIN_API_KEY");
