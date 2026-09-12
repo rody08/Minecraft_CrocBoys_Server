@@ -156,3 +156,19 @@ Use short entries for decisions that future plugin work should not rediscover.
 - Context: Magnum was receiving conversation history as transcript-shaped prose, so it sometimes imitated labels or prompt text. Moving build decisions entirely into keyword code made chat less natural and still did not improve the model itself.
 - Decision: In 0.5.2, send history as real Responses API user/assistant turns and let Magnum write replies, interpret follow-ups, and choose permitted structured actions. Keep only narrow prompt-leak/label cleanup and independent validation of every action. Accept Magnum's natural two-field build marker, use a concise tool prompt with examples, and default Ollama temperature to 0.35.
 - Consequences: The model controls conversation and decisions without being encouraged to continue a transcript. The plugin still constrains items, trust, build palettes, permissions, dimensions, clear space, confirmation, and WorldEdit undo. A repeatable local-GPU evaluation must pass before deployment.
+
+## 2026-09-12 — Save Nyx expansion behind a resumable local benchmark
+
+- Context: The owner wants richer all-player memory, expressive moods, and
+  feedback, but limited Codex allowance makes a saved handoff and repeatable
+  local comparison the immediate scope. The RX 6900 XT also serves gaming.
+- Decision: Preserve the agreed stages in [NYX_ROADMAP.md](NYX_ROADMAP.md) and
+  defer plugin features. Benchmark Magnum against the recorded candidate tags
+  with synthetic cases, pinned model digests, 4K initial context, and saved
+  per-case results that can resume without repeating completed work. Select a
+  model from measured latency, gameplay headroom, and dialogue/action quality.
+- Consequences: No winner or achieved 3-5-second gaming target is assumed.
+  Benchmark artifacts stay ignored and local. Later memory work must fix
+  validation/commit ordering, UUID attribution, private player controls, and
+  clear/disable races; moods remain separate from trust. Production deployment
+  remains outside this task.
