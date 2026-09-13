@@ -15,6 +15,25 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 MAX_REQUEST_BYTES = 1_048_576
 
 
+def prepare_forward(payload: dict, task: str, chat_model: str, builder_model: str) -> tuple[dict, int]:
+    """Only locally configured model names can be selected by authenticated callers."""
+    if task not in ("chat", "blueprint"):
+        raise ValueError("unknown_task")
+    forwarded = dict(payload)
+    if task == "blueprint":
+        tokens = forwarded.get("max_output_tokens", 4096)
+        if type(tokens) is not int or not 1 <= tokens <= 4096:
+            raise ValueError("invalid_blueprint_budget")
+        if not builder_model:
+            raise ValueError("builder_model_not_configured")
+        forwarded["model"] = builder_model
+        forwarded["max_output_tokens"] = tokens
+    else:
+        forwarded["model"] = chat_model
+    forwarded["stream"] = False
+    return forwarded, 120 if task == "blueprint" else 45
+
+
 def load_env(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
@@ -50,7 +69,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         if self.path != "/health" or not self.authorized():
             self.send_json(404, {"error": "not_found"})
             return
-        self.send_json(200, {"status": "ok", "model": self.server.model})
+        self.send_json(200, {"status": "ok", "model": self.server.model, "builder_model": self.server.builder_model})
 
     def do_POST(self) -> None:
         if self.path != "/v1/responses":
@@ -80,8 +99,12 @@ class RelayHandler(BaseHTTPRequestHandler):
 
         # The relay owns model selection so a leaked token cannot load arbitrary
         # local models. Streaming is disabled because the plugin expects one body.
-        payload["model"] = self.server.model
-        payload["stream"] = False
+        try:
+            payload, inference_timeout = prepare_forward(payload, self.headers.get("X-Nyx-Task", "chat"),
+                                                         self.server.model, self.server.builder_model)
+        except ValueError as error:
+            self.send_json(400, {"error": str(error)})
+            return
         forwarded = json.dumps(payload).encode("utf-8")
         request = urllib.request.Request(
             "http://127.0.0.1:11434/v1/responses",
@@ -90,7 +113,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=45) as response:
+            with urllib.request.urlopen(request, timeout=inference_timeout) as response:
                 body = response.read()
                 status = response.status
                 content_type = response.headers.get("Content-Type", "application/json")
@@ -99,7 +122,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             status = error.code
             content_type = error.headers.get("Content-Type", "application/json")
         except (urllib.error.URLError, TimeoutError) as error:
-            self.send_json(502, {"error": "ollama_unavailable", "detail": str(error.reason)})
+            self.send_json(502, {"error": "ollama_unavailable", "detail": str(getattr(error, "reason", error))})
             return
 
         self.send_response(status)
@@ -125,6 +148,7 @@ def main() -> int:
     server = ThreadingHTTPServer(("127.0.0.1", port), RelayHandler)
     server.relay_token = token
     server.model = model
+    server.builder_model = settings.get("NYX_BUILDER_MODEL", "qwen3-coder:30b")
     print(f"Relay listening on http://127.0.0.1:{port} for model {model}", flush=True)
     try:
         server.serve_forever()

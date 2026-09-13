@@ -144,12 +144,17 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
 
     @Override
     public void onDisable() {
+        if (buildService != null) buildService.close();
         if (brainTask != null) brainTask.cancel();
         if (trustStore != null) trustStore.save();
         releaseHomeChunk();
     }
 
     private void reloadRuntime() {
+        if (buildService != null) {
+            buildService.close();
+            buildService = new NyxBuildService(this);
+        }
         reloadConfig();
         migrateV030Config();
         aiClient = new OpenAiClient(this);
@@ -160,7 +165,7 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
         String version = getConfig().contains("config-version", true)
                 ? getConfig().getString("config-version", "")
                 : "";
-        if ("0.5.2".equals(version)) return;
+        if ("0.6.0".equals(version)) return;
 
         boolean changed = false;
         if (!getConfig().contains("ai.provider", true)) {
@@ -349,8 +354,11 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
             }
         }
 
-        getConfig().set("config-version", "0.5.2");
-        if (changed || !"0.5.2".equals(version)) saveConfig();
+        if (getConfig().getInt("ai.building.max-blocks", 1200) == 1200) getConfig().set("ai.building.max-blocks", 4096);
+        if (!getConfig().contains("ai.building.max-dimension", true)) getConfig().set("ai.building.max-dimension", 32);
+        if (!getConfig().contains("ai.building.blocks-per-tick", true)) getConfig().set("ai.building.blocks-per-tick", 100);
+        getConfig().set("config-version", "0.6.0");
+        if (changed || !"0.6.0".equals(version)) saveConfig();
     }
 
     private String ownerName() {
@@ -682,15 +690,27 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
 
         if (!isAddressedToNpc(lower, player)) return;
 
-        if (buildService != null && buildService.hasPending(player)) {
-            if (lower.contains("confirm") && lower.contains("build")) {
-                runSync(() -> sayNearby(buildService.confirm(player), player.getName().equalsIgnoreCase(ownerName())));
-                return;
-            }
-            if (lower.contains("cancel") && lower.contains("build")) {
-                runSync(() -> sayNearby(buildService.cancel(player), player.getName().equalsIgnoreCase(ownerName())));
-                return;
-            }
+        String buildControl = BuildRequest.control(message, characterName());
+        if (buildService != null && !buildControl.isBlank()) {
+            runSync(() -> sayNearby(switch (buildControl) {
+                case "confirm" -> buildService.confirm(player);
+                case "move" -> buildService.move(player);
+                default -> buildService.cancel(player);
+            }, player.getName().equalsIgnoreCase(ownerName())));
+            return;
+        }
+
+        // An explicit imperative is already an action request. Avoid asking the dialogue model
+        // to repeat it as a marker (or accidentally turn it into a gift of building materials).
+        BuildRequest directBuild = BuildRequest.directRequest(message, characterName());
+        if (buildService != null && directBuild != null) {
+            runSync(() -> {
+                addConversationLine(player.getName() + ": " + message);
+                String response = buildService.prepare(player, directBuild, currentTrust(player));
+                addConversationLine(characterName() + ": " + response);
+                sayNearby(response, player.getName().equalsIgnoreCase(ownerName()));
+            });
+            return;
         }
 
         long now = System.currentTimeMillis();
@@ -785,7 +805,7 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
         } catch (Exception e) {
             lastAiLatencyMs = (System.nanoTime() - started) / 1_000_000L;
             lastAiStatus = rootMessage(e);
-            getLogger().log(Level.WARNING, "AI request failed; using local reply: " + e.getMessage());
+            getLogger().log(Level.WARNING, "AI request failed; using local reply: " + rootMessage(e));
             return localReply(playerName, message);
         }
     }
@@ -810,7 +830,7 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
         return cleaned.isBlank() ? localReply(playerName, "") : cleaned;
     }
 
-    private int currentTrust(Player player) {
+    int currentTrust(Player player) {
         TrustPolicy policy = trustPolicy();
         if (!getConfig().getBoolean("ai.item-gifts.trust.enabled", true)) return policy.maximum();
         return trustStore.score(player.getUniqueId(), player.getName(), ownerName(), policy.maximum());
@@ -843,9 +863,11 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
                 trustInstruction +
                 " The server can fulfill item requests. Decide what item the player means; if it is ambiguous, ask one short follow-up question. " +
                 "When ready to give a vanilla item, append [[GIVE_ITEM: minecraft:item_id | amount]] using a real ID and amount 1 to " + maxGift + ". " +
+                "Use real Minecraft food IDs such as minecraft:bread, minecraft:apple, minecraft:golden_apple, minecraft:cooked_beef, minecraft:cookie, " +
+                "minecraft:melon_slice, minecraft:beetroot_soup, minecraft:pumpkin_pie, minecraft:cooked_chicken, and minecraft:enchanted_golden_apple. " +
                 "Example: cooked chicken is [[GIVE_ITEM: minecraft:cooked_chicken | 4]]. Add a third enchantment field only when the player explicitly asks " +
                 "for enchantments: [[GIVE_ITEM: minecraft:item_id | amount | minecraft:enchantment=level]]. " +
-                "At trust 0 choose food only. At trust 50 choose any vanilla item. At trust 100 you may also choose a custom name or approved custom item. " +
+                "At trust 0 choose common edible foods. At trust 50 choose any vanilla item. At trust 100 you may also choose a custom name or approved custom item. " +
                 "Never put commands, player names, selectors, NBT, or prose inside a marker. The server validates every choice. ");
         if (getConfig().getBoolean("ai.item-gifts.elitemobs.enabled", true) && !eliteItems.isEmpty()) {
             instruction.append("At trust 100 you may alternatively grant one installed EliteMobs item with " +
@@ -864,13 +886,7 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
         if (trustScore < required) {
             return " Do not emit a BUILD_SCHEMATIC marker because this speaker has not reached the required building trust.";
         }
-        return " You can decide to draft a small house when directly asked. Supported choices are exactly " +
-                "[[BUILD_SCHEMATIC: house | oak]], [[BUILD_SCHEMATIC: house | spruce]], or [[BUILD_SCHEMATIC: house | dark_oak]]. " +
-                "These small wood houses are the only available designs. Choose the closest supported style or ask one short follow-up question. " +
-                "If the player asks for unsupported colors, extra stories, or another design, explain the limit briefly and do not promise it. Never invent a fourth style. " +
-                "When you decide to accept a supported build request, you MUST append its exact marker; a promise without the marker does nothing. " +
-                "Example: I'll draft the oak preview here. [[BUILD_SCHEMATIC: house | oak]] " +
-                "The server creates a preview and asks for confirmation, so say you will draft or preview it, not that it is finished.";
+        return BuildRequest.prompt();
     }
 
     private String applyGift(UUID playerId, String playerName, int trustScore,
@@ -1597,16 +1613,16 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(color("&eUsage: /nyx build <confirm|cancel|status>"));
+            sender.sendMessage(color("&eUsage: /nyx build <confirm|cancel|status|move|description>"));
             return;
         }
         switch (args[1].toLowerCase(Locale.ROOT)) {
             case "confirm" -> sender.sendMessage(color("&dNyx: &f" + buildService.confirm(player)));
             case "cancel" -> sender.sendMessage(color("&dNyx: &f" + buildService.cancel(player)));
-            case "status" -> sender.sendMessage(color(buildService.hasPending(player)
-                    ? "&dNyx: &fYour build preview is waiting for confirmation."
-                    : "&dNyx: &fYou don't have a pending build."));
-            default -> sender.sendMessage(color("&eUsage: /nyx build <confirm|cancel|status>"));
+            case "status" -> sender.sendMessage(color("&dNyx: &f" + buildService.status(player)));
+            case "move" -> sender.sendMessage(color("&dNyx: &f" + buildService.move(player)));
+            default -> sender.sendMessage(color("&dNyx: &f" + buildService.prepare(player,
+                    new BuildRequest(String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)), "", ""), currentTrust(player))));
         }
     }
 
@@ -1614,7 +1630,7 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) return startsWith(args[0], List.of("spawn", "follow", "stay", "come", "skin", "name", "trust", "build", "memory", "remember", "memories", "forget", "ai", "aitest", "say", "status", "reload"));
         if (args.length == 2 && args[0].equalsIgnoreCase("ai")) return startsWith(args[1], List.of("on", "off"));
-        if (args.length == 2 && args[0].equalsIgnoreCase("build")) return startsWith(args[1], List.of("confirm", "cancel", "status"));
+        if (args.length == 2 && args[0].equalsIgnoreCase("build")) return startsWith(args[1], List.of("confirm", "cancel", "status", "move"));
         if (args.length == 2 && args[0].equalsIgnoreCase("memory")) return startsWith(args[1], List.of("list", "clear"));
         if (args.length == 3 && args[0].equalsIgnoreCase("memory") && args[1].equalsIgnoreCase("clear")) return startsWith(args[2], List.of("recent", "persistent", "all"));
         if (args.length == 2 && args[0].equalsIgnoreCase("skin")) return startsWith(args[1], List.of("username", "mineskin", "texture", "refresh", "status", "clear"));

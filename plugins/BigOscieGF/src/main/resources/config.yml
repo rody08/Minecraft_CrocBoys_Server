@@ -1,6 +1,6 @@
-config-version: "0.5.2"
+config-version: "0.6.0"
 
-# BigOscieGF v0.5.2
+# BigOscieGF v0.6.0
 owner: .BigOscie49
 
 npc:
@@ -68,17 +68,18 @@ reactions:
     enabled: false
 
 # The plugin works WITHOUT an API key using built-in local replies/reactions.
-# For real AI conversation, set OPENAI_API_KEY in the server environment, or place
-# the key here. Environment variable is safer because it does not live in config.yml.
+# For real AI conversation, point at the local Ollama bridge or set your OpenAI
+# key in the server environment. Environment variables are safer than storing
+# secrets in config.yml.
 ai:
-  enabled: false
+  enabled: true
   # provider: openai | ollama
   # A PebbleHost server cannot use localhost on your PC. For Ollama, point this
   # at the authenticated HTTPS relay created by scripts/Start-OllamaBridge.ps1.
-  provider: "openai"
-  endpoint: "https://api.openai.com/v1/responses"
-  model: "gpt-5.6-luna"
-  api-key: ""
+  provider: "ollama"
+  endpoint: "https://balloon-exist-nancy-architecture.trycloudflare.com/v1/responses"
+  model: "hf.co/bartowski/magnum-v4-12b-GGUF:Q5_K_M"
+  api-key: "Gk5sx7zuHTV7a_x0IcZhxmotHdCuXTK-cpTZ4NVeI7Q"
   # Generation room prevents mid-sentence model cutoffs; visible length is capped below.
   max-output-tokens: 160
   # Final display safety cap. The model decides normal reply length.
@@ -159,10 +160,17 @@ ai:
   # after the same player explicitly confirms. Building is OP-only by default.
   building:
     enabled: true
+    # Optional model override for direct endpoints. The relay pins its own NYX_BUILDER_MODEL.
+    model: ""
     permission: "nyx.build"
     trust-required: 50
     confirmation-seconds: 120
-    max-blocks: 1200
+    # Bounding volume, including air. Absolute code ceiling: 32768.
+    max-blocks: 4096
+    # Per-axis ceiling; absolute code ceiling: 48.
+    max-dimension: 32
+    # Global placement rate (one job at a time); absolute ceiling: 200.
+    blocks-per-tick: 100
 
   personality: >-
     You are {name}, an AI companion in BigOscie's private Minecraft group chat. Talk

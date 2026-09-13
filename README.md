@@ -14,7 +14,9 @@ and the configuration and documentation needed to maintain it.
 | `docs/PLUGIN_CATALOG.md` | Inventory and status of custom and third-party plugins |
 | `docs/OPERATIONS.md` | Safe build, test, backup, and deployment workflow |
 | `docs/OLLAMA.md` | Local Ollama bridge for BigOscieGF |
+| `docs/NYX_ROADMAP.md` | Saved Nyx plan, benchmark procedure, and next-session handoff |
 | `docs/DECISIONS.md` | Short record of important technical decisions |
+| `scripts/Start-NyxBenchmark.ps1` | Resumable local model comparison with synthetic conversations |
 | `scripts/Deploy-Plugin.ps1` | Upload one built plugin JAR over SFTP/SCP |
 | `AGENTS.md` | Instructions that help Codex work safely and gather context |
 

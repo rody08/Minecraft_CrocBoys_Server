@@ -10,6 +10,12 @@ Use short entries for decisions that future plugin work should not rediscover.
 - Decision: What did we choose?
 - Consequences: What should future work know?
 
+## 2026-09-12 — Generate arbitrary Nyx subjects through bounded blueprints
+
+- Context: The existing WorldEdit builder only generated fixed houses; changing the chat model could not make cars or other subjects buildable. The owner requested dynamic schematics with server-size limits.
+- Decision: Local 0.6.0 separates conversational intent from a longer design request. Magnum failed two bounded-blueprint probes; the updated relay pins designs to the existing local `qwen3-coder:30b` (`NYX_BUILDER_MODEL`) while retaining Magnum for chat. Permit one validated repair attempt. Parse a small SIZE/FILL/END language with strict local coordinates, a decorative-material vocabulary, bounded text/operation/work counts and hard dimension/volume ceilings. Export a Sponge schematic and paste its validated clipboard through a globally serialized WorldEdit session in small tick batches, preserving history for undo.
+- Consequences: Arbitrary subjects become static block sculptures, with quality dependent on the model. Explicit `Nyx build ...` imperatives enter the designer directly; contextual follow-ups retain model-led interpretation. Existing trust/permission and explicit preview confirmation remain. Full-volume occupancy, loaded chunks, world bounds, entities and WorldGuard protection are checked; placed cells are rechecked. Physics-heavy blocks, NBT and executable model output are excluded. A cancelled/failed paste can be partial and is described honestly. File retention and pending designs are bounded. The default volume rises from 1200 to 4096 (custom values retained). Relay source allows longer design inference; deployment/restarts and a real gameplay smoke test remain separate from this local implementation.
+
 ## 2026-09-11 — Repository organization
 
 - Context: Server work previously had no shared project structure.

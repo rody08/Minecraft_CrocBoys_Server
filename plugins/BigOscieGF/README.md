@@ -1,6 +1,35 @@
-BigOscieGF v0.5.2
+BigOscieGF v0.6.0
 ==================
 Built for RXSpicy's Purpur 26.2 server. Requires Citizens 2.0.43+ and WorldEdit 7.4.5+.
+
+WHAT CHANGED IN v0.6.0 (LOCAL RELEASE; NOT DEPLOYED)
+--------------------------------------------------
+DYNAMIC SCHEMATIC DESIGN
+- Say `Nyx build me a red sports car`, `Nyx build a purple dragon statue`, or describe another subject. A separate AI request designs a block sculpture from scratch; subjects and house styles are no longer hard-coded.
+- Explicit `Nyx build ...` requests go straight to the designer so the chat model cannot substitute a gift of materials. Questions and contextual follow-ups (such as `build it here`) still use Nyx's conversation model to resolve the description.
+- The updated relay uses the already-installed `qwen3-coder:30b` for designs (`NYX_BUILDER_MODEL`), while Magnum remains the chat model. Model changes can add cold-start latency. A direct endpoint can use `ai.building.model` instead.
+- The model returns bounded local-coordinate cuboids. Nyx validates the complete design, creates a real Sponge `.schem`, previews its bounds and waits for `Nyx, confirm build` or `/nyx build confirm`. The preview is a bounding box, not a hologram of every block.
+- `/nyx build <description>` requests a design directly if conversational interpretation misses the request. `/nyx build status` shows progress or the pending dimensions, coordinates and expiry.
+- Initial placement is ahead of where you requested it, at your feet's elevation. `/nyx build move` or `Nyx move build here` moves the minimum corner of the pending design to your feet, including in another world. The design extends east, up and south. Step outside its bounds before confirming. Moving keeps the original expiry.
+- `/nyx build cancel` cancels a preview, discards a design still generating, or stops placement. Cancelled generation releases the worker when its bounded request ends. Say `Nyx cancel build` for the same behavior.
+- This produces static Minecraft structures: a car looks like a car but is not drivable. Appearance and successful generation depend on the configured model; malformed, incomplete and over-budget responses receive one automatic repair attempt, then fail safely. You can retry with a simpler request. Each inference request is bounded at 135 seconds end to end.
+
+LIMITS AND WORLD SAFETY
+- `ai.building.max-blocks` defaults to 4096 and counts the entire bounding volume, including air. `max-dimension` defaults to 32 per axis. Code always caps these at 32768 volume and 48 per axis, even if config is higher.
+- `blocks-per-tick` defaults to 100, with an absolute ceiling of 200. Only one design/placement job runs at a time. Each placement batch also has a 2 ms soft work budget; individual WorldEdit/world calls can exceed it, so this is not a guarantee of lag-free operation.
+- AI inference, schematic compression and file writes run off the server thread. Clipboard registry access and all world operations stay on the server thread. WorldEdit buffering is disabled so placement does not accumulate into one huge final paste; lighting and client updates remain enabled, neighbor physics is suppressed.
+- Decorative solid blocks, wood, wool, glass and lights are supported. Commands, scripts, URLs, NBT, entities, inventories, spawners, explosives, fluids, gravity blocks and redstone machinery cannot be generated. Air only carves the design; it never clears existing terrain.
+- The full footprint, including the bottom layer, must be clear, loaded and inside the world's height/border. Existing buildings and containers are preserved. Entities must leave the area. Each placed cell is rechecked during placement; a new obstruction stops the build.
+- Existing `nyx.build` permission (OP by default) and trust requirements remain. Permissions/trust are checked again on confirmation and during placement. If WorldGuard is installed, its build rules and bypass permissions are honored, including ProtectionStones regions; unavailable installed WorldGuard fails closed. Other claim systems need their own integration.
+- Completed and interrupted pastes enter the player's WorldEdit undo history. A failed paste may be partial; use `//undo` with WorldEdit permission. Undo history is session-based and is not a persistent server backup. Disconnecting, changing worlds, disabling or reloading Nyx stops placement.
+- Generated files are stored in `plugins/BigOscieGF/schematics/generated/nyx-<random UUID>.schem`; the latest 100 files of that pattern are retained. Legacy house files and imported files are untouched. At most 16 previews remain in memory, with a default 120-second confirmation window (configurable 15-600 seconds).
+- Existing default 1200-volume configs migrate to 4096; custom non-default volume limits are preserved. The AI relay source now permits 120 seconds for bounded blueprint requests while retaining 45 seconds for chat. Restarting the local relay with the updated script is required for builder-model routing and that timeout; this task does not restart it.
+
+LOCAL VALIDATION
+- `gradlew.bat test build` runs parser/action/placement-policy regression tests and packages the plugin.
+- Final local validation: 55 Java tests passed, 4 relay-routing tests passed, and all 5 local chat/action probe cases passed. Three Qwen3-Coder design probes produced valid bounded geometry. A broader run of the separate benchmark suite found two existing HTML-escaping assertion failures in `test_reports_escape_replies_and_fixture_metadata_and_keep_final_text_only`; benchmark implementation and existing tests were not changed by this work.
+- `gradlew.bat testBuildDesign` explicitly calls local Ollama/Qwen3-Coder with synthetic car, dragon and house requests; writes generated plans under ignored `build/design-probe/`. This uses the local GPU and is not part of the ordinary unit suite. Override with `"-PdesignModel=<installed tag>"`. Three synthetic plans passed validation at 5.1, 8.5 and 8.2 seconds with the builder warm; an earlier cold car request took 52 seconds. These checks establish valid geometry, not visual fidelity or live gameplay performance.
+- Before production deployment, smoke-test on a disposable Purpur 26.2 server with Citizens 2.0.43, WorldEdit 7.4.5 and WorldGuard 7.0.18: generate a car, move the preview, confirm, cancel mid-paste, undo, test a protected region, occupy the bottom layer, revoke permission and disconnect during placement. Check client lighting and TPS. No local gameplay test server is currently recorded in `docs/SERVER.md`.
 
 WHAT CHANGED IN v0.5.2
 ----------------------

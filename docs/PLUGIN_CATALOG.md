@@ -38,6 +38,12 @@ ownership still needs confirmation.
 
 ## Plugin support directories without a matching top-level JAR
 
+Local BigOscieGF source is now 0.6.0: dynamic AI schematic designs, movable
+previews and bounded WorldEdit placement. The JAR and updated local relay source
+are prepared; no production upload or restart has occurred. The live version
+in the table remains 0.5.1 pending an explicitly requested deployment and gameplay
+verification.
+
 The live directory also contains `AxAPI`, `bStats`, `faststats`, `MagmaCore`,
 `NBTAPI`, `spark`, `update`, and `Vault`. These may be data directories, embedded
 libraries, generated support folders, or remnants. Do not delete them without

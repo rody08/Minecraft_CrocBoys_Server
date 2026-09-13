@@ -5,7 +5,7 @@ api-version: '26.2'
 author: RXSpicy
 description: Citizens-powered AI goth companion NPC for BigOscie49.
 depend: [Citizens, WorldEdit]
-softdepend: [EliteMobs]
+softdepend: [EliteMobs, WorldGuard]
 commands:
   bigosciegf:
     description: Manage BigOscie's GF companion NPC.

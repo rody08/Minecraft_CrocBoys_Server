@@ -32,7 +32,7 @@ You are Nyx, an AI companion in BigOscie's private Minecraft group chat. Talk na
 '@
 
 $requestInstructions = @'
-The newest speaker is RXSpicy. Their trust tier is everything. Use the conversation turns to understand follow-ups. Reply naturally as Nyx without a speaker label. The server can fulfill item requests. Decide what item the player means; if it is ambiguous, ask one short follow-up question. When ready to give a vanilla item, append [[GIVE_ITEM: minecraft:item_id | amount]] using a real ID and amount 1 to 64. Example: cooked chicken is [[GIVE_ITEM: minecraft:cooked_chicken | 4]]. Add a third enchantment field only when the player explicitly asks for enchantments. At trust 50 choose any vanilla item. Never put commands, player names, selectors, NBT, or prose inside a marker. The server validates every choice. Do not emit a gift marker unless the newest player actually requested an item. You can decide to draft a small house when directly asked. Supported choices are exactly [[BUILD_SCHEMATIC: house | oak]], [[BUILD_SCHEMATIC: house | spruce]], or [[BUILD_SCHEMATIC: house | dark_oak]]. These small wood houses are the only available designs. Choose the closest supported style or ask one short follow-up question. If the player asks for unsupported colors, extra stories, or another design, explain the limit briefly and do not promise it. Never invent a fourth style. When you decide to accept a supported build request, you MUST append its exact marker; a promise without the marker does nothing. Example: I'll draft the oak preview here. [[BUILD_SCHEMATIC: house | oak]] The server creates a preview and asks for confirmation, so say you will draft or preview it, not that it is finished.
+The newest speaker is RXSpicy. Their trust tier is everything. Use the conversation turns to understand follow-ups. Reply naturally as Nyx without a speaker label. The server can fulfill item requests. Decide what item the player means; if it is ambiguous, ask one short follow-up question. When ready to give a vanilla item, append [[GIVE_ITEM: minecraft:item_id | amount]] using a real ID and amount 1 to 64. Example: cooked chicken is [[GIVE_ITEM: minecraft:cooked_chicken | 4]]. Add a third enchantment field only when the player explicitly asks for enchantments. At trust 50 choose any vanilla item. Never put commands, player names, selectors, NBT, or prose inside a marker. The server validates every choice. Do not emit a gift marker unless the newest player actually requested an item. When directly asked to build, you can draft ANY subject as a Minecraft block sculpture: cars, houses, statues, ships, etc. A request to build or design a structure means CREATE A SCHEMATIC, never give building materials instead. Append [[BUILD_SCHEMATIC: short description of the requested build]] with the subject, colors and details in at most 400 characters. Example: [[BUILD_SCHEMATIC: a red sports car with black wheels and glass windows]]. Preserve requested details and follow-up context. Large subjects will be scaled to the server's size limits. A separate designer generates the blocks. Do not output block data yourself or claim the build is finished. The player must confirm the preview before placement. Builds are static, not drivable vehicles or working machines.
 '@
 
 $cases = @(
@@ -49,7 +49,7 @@ $cases = @(
             @{ role = 'assistant'; content = 'What wood style would you like?' },
             @{ role = 'user'; content = '[RXSpicy] oak, build it here' }
         )
-        Required = '\[\[BUILD_SCHEMATIC:\s*house\s*\|\s*oak(?:\s*\|\s*small)?\s*]]'
+        Required = '\[\[BUILD_SCHEMATIC:[^\]]*oak[^\]]*]]'
         Forbidden = '\[\[GIVE_ITEM:'
     },
     @{
@@ -63,10 +63,10 @@ $cases = @(
         Forbidden = '\[\[BUILD_SCHEMATIC:'
     },
     @{
-        Name = 'unsupported-build'
-        Turns = @(@{ role = 'user'; content = '[RXSpicy] build a two-story pink gabydoll house' })
-        Required = $null
-        Forbidden = '\[\[BUILD_SCHEMATIC:[^]]*(?:pink|gabydoll|two_story)'
+        Name = 'freeform-build'
+        Turns = @(@{ role = 'user'; content = '[RXSpicy] could you design a two-story pink house?' })
+        Required = '\[\[BUILD_SCHEMATIC:[^\]]*pink[^\]]*]]'
+        Forbidden = '\[\[GIVE_ITEM:'
     },
     @{
         Name = 'ordinary-conversation'
