@@ -1,7 +1,7 @@
 plugins { java }
 
 group = "com.rxspicy"
-version = "0.6.0"
+version = "0.6.1"
 
 repositories {
     mavenCentral()
@@ -11,11 +11,11 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.123-stable")
-    compileOnly("net.citizensnpcs:citizens-main:2.0.43-SNAPSHOT") {
+    compileOnly("io.papermc.paper:paper-api:26.3.build.141-beta")
+    compileOnly("net.citizensnpcs:citizens-main:2.0.44-SNAPSHOT") {
         exclude(group = "*", module = "*")
     }
-    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.5")
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.4.6-SNAPSHOT")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.18")
     testImplementation(platform("org.junit:junit-bom:5.13.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")

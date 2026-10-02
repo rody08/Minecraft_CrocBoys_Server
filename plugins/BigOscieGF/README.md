@@ -1,6 +1,16 @@
-BigOscieGF v0.6.0
+BigOscieGF v0.6.1
 ==================
-Built for RXSpicy's Purpur 26.2 server. Requires Citizens 2.0.43+ and WorldEdit 7.4.5+.
+Built for RXSpicy's Purpur 26.3 server. Requires Citizens 2.0.44+ and WorldEdit 7.4.6 beta 2+.
+
+WHAT CHANGED IN v0.6.1 (LOCAL FIX)
+---------------------------------
+- Fixes previews buried in hills: initial placement and `/nyx build move` try a bounded upward adjustment of up to eight blocks without digging or loading chunks. On uneven terrain, parts can sit above the ground; no automatic foundation or terraforming is added.
+- Only actual non-air schematic cells need free space. Empty areas no longer reject nearby terrain or entities that the paste would never touch. World bounds, protection and per-block rechecks still apply.
+- Placement errors identify the actual obstruction and coordinates, unloaded chunk, border/height limit, entity or protection restriction instead of repeating one generic refusal. Confirmation never silently relocates an already-previewed design.
+- Moving a preview renews its confirmation window to 120 seconds. If someone is in the way, Nyx asks them to move rather than raising the build above their head.
+- Restores the goth, affectionate, teasing Nyx default. Only an exact whitespace-normalized match to the regressed generic personality is migrated; custom text is preserved.
+- Shorter build chatter and the configured Nyx nameplate replace the mechanical status paragraphs and plain `Nyx:` messages. Results enter conversation memory. Narrow cleanup removes explicit starred acting directions while retaining the model's spoken words and humor.
+- Build and terrain regression tests are local/mocked, not a production gameplay verification. The raw Magnum probe still occasionally emits acting directions; the observed case is covered by the dialogue-cleanup regression test.
 
 WHAT CHANGED IN v0.6.0 (LOCAL RELEASE; NOT DEPLOYED)
 --------------------------------------------------
@@ -29,7 +39,7 @@ LOCAL VALIDATION
 - `gradlew.bat test build` runs parser/action/placement-policy regression tests and packages the plugin.
 - Final local validation: 55 Java tests passed, 4 relay-routing tests passed, and all 5 local chat/action probe cases passed. Three Qwen3-Coder design probes produced valid bounded geometry. A broader run of the separate benchmark suite found two existing HTML-escaping assertion failures in `test_reports_escape_replies_and_fixture_metadata_and_keep_final_text_only`; benchmark implementation and existing tests were not changed by this work.
 - `gradlew.bat testBuildDesign` explicitly calls local Ollama/Qwen3-Coder with synthetic car, dragon and house requests; writes generated plans under ignored `build/design-probe/`. This uses the local GPU and is not part of the ordinary unit suite. Override with `"-PdesignModel=<installed tag>"`. Three synthetic plans passed validation at 5.1, 8.5 and 8.2 seconds with the builder warm; an earlier cold car request took 52 seconds. These checks establish valid geometry, not visual fidelity or live gameplay performance.
-- Before production deployment, smoke-test on a disposable Purpur 26.2 server with Citizens 2.0.43, WorldEdit 7.4.5 and WorldGuard 7.0.18: generate a car, move the preview, confirm, cancel mid-paste, undo, test a protected region, occupy the bottom layer, revoke permission and disconnect during placement. Check client lighting and TPS. No local gameplay test server is currently recorded in `docs/SERVER.md`.
+- Before production deployment, smoke-test on a disposable Purpur 26.3 server with Citizens 2.0.44, WorldEdit 7.4.6 beta 2 and WorldGuard 7.0.18: generate a car, move the preview, confirm, cancel mid-paste, undo, test a protected region, occupy the bottom layer, revoke permission and disconnect during placement. Check client lighting and TPS. No local gameplay test server is currently recorded in `docs/SERVER.md`.
 
 WHAT CHANGED IN v0.5.2
 ----------------------

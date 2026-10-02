@@ -91,7 +91,7 @@ final class NyxBuildService {
                 sync(() -> compile(id, anchor, blueprint, directory));
             } catch (Exception e) { sync(() -> failGeneration(id, e)); }
         });
-        return "I'm designing your build. I'll save a schematic and show its bounds before asking you to confirm.";
+        return "Alright, let me put something together. Keep a little room for my questionable genius.";
     }
 
     private void compile(UUID id, Location anchor, BuildBlueprint blueprint, Path directory) {
@@ -139,12 +139,13 @@ final class NyxBuildService {
         direction.normalize().multiply(Math.max(blueprint.width(), blueprint.depth()) / 2.0 + 4);
         Location target = new Location(anchor.getWorld(), anchor.getBlockX() + direction.getBlockX() - blueprint.width() / 2,
                 anchor.getBlockY(), anchor.getBlockZ() + direction.getBlockZ() - blueprint.depth() / 2);
+        target = BuildSite.fit(player, blueprint, target);
         long seconds = Math.max(15, Math.min(600, plugin.getConfig().getLong("ai.building.confirmation-seconds", 120)));
         BuildPlan plan = new BuildPlan(blueprint, clipboard, file, target, System.currentTimeMillis() + seconds * 1000);
         pending.put(id, plan);
         preview(player, plan);
         String problem = checkArea(player, plan);
-        tell(player, previewMessage(plan) + (problem == null ? "" : " " + problem + " Use /nyx build move in clear space."));
+        tell(player, problem == null ? previewMessage(plan) : "The design is ready, but this spot is trouble. " + problem);
     }
 
     private void failGeneration(UUID id, Exception error) {
@@ -159,11 +160,11 @@ final class NyxBuildService {
         if (denied != null) return denied;
         BuildPlan old = pending.get(player.getUniqueId());
         if (!hasPending(player)) return "Ask me to draft a build first.";
-        BuildPlan plan = new BuildPlan(old.blueprint, old.clipboard, old.file, player.getLocation().getBlock().getLocation(), old.expiresAt);
+        BuildPlan plan = new BuildPlan(old.blueprint, old.clipboard, old.file, BuildSite.fit(player, old.blueprint, player.getLocation().getBlock().getLocation()), System.currentTimeMillis() + 120000);
         pending.put(player.getUniqueId(), plan);
         preview(player, plan);
         String problem = checkArea(player, plan);
-        return previewMessage(plan) + (problem == null ? " Step outside the bounds before confirming." : " " + problem);
+        return problem == null ? previewMessage(plan) : problem;
     }
 
     String confirm(Player player) {
@@ -184,7 +185,7 @@ final class NyxBuildService {
             pending.remove(player.getUniqueId());
             active = new Paste(player, plan, edit);
             active.task = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPaste, 1, 1);
-            return "Placing " + plan.blueprint.blocks().size() + " blocks in small batches. I'll tell you when it's finished.";
+            return "Stand back. Let's make this thing real.";
         } catch (Exception e) { return "I couldn't start the WorldEdit paste."; }
     }
 
@@ -206,7 +207,7 @@ final class NyxBuildService {
                 paste.index++;
                 if (System.nanoTime() >= deadline) break;
             }
-            if (paste.index == paste.plan.blueprint.blocks().size()) finishPaste("Build finished. Use WorldEdit //undo to undo it.");
+            if (paste.index == paste.plan.blueprint.blocks().size()) finishPaste("There. Try not to look too impressed. It's built; //undo is there if you hate it.");
         } catch (Exception e) { finishPaste("The build stopped. Some blocks may have been placed; use WorldEdit //undo to remove them."); }
     }
 
@@ -237,30 +238,14 @@ final class NyxBuildService {
         if ((long) b.width() * b.height() * b.depth() > limit.volume()
                 || Math.max(b.width(), Math.max(b.height(), b.depth())) > limit.axis()) return "That design exceeds the current build limits.";
         if (!player.getWorld().equals(plan.target.getWorld())) return "Return to the preview's world or use /nyx build move.";
-        for (int x = 0; x < b.width(); x++) for (int z = 0; z < b.depth(); z++) for (int y = 0; y < b.height(); y++) {
-            if (!available(player, plan.target.clone().add(x, y, z))) return "The whole build area must be clear, loaded, inside the world border, and permitted.";
-        }
-        var box = new org.bukkit.util.BoundingBox(plan.target.getX(), plan.target.getY(), plan.target.getZ(),
-                plan.target.getX() + b.width(), plan.target.getY() + b.height(), plan.target.getZ() + b.depth());
-        if (!player.getWorld().getNearbyEntities(box).isEmpty()) return "Move players and entities outside the preview before confirming.";
-        return null;
+        return BuildSite.check(player, b, plan.target);
     }
 
     static boolean available(Player player, Location at) {
-        World world = at.getWorld();
-        if (world == null || at.getBlockY() < world.getMinHeight() || at.getBlockY() >= world.getMaxHeight()
-                || !world.isChunkLoaded(at.getBlockX() >> 4, at.getBlockZ() >> 4)
-                || !world.getWorldBorder().isInside(at) || !world.getWorldBorder().isInside(at.clone().add(0.999, 0, 0.999))) return false;
-        Material type = world.getBlockAt(at.getBlockX(), at.getBlockY(), at.getBlockZ()).getType();
-        if (type != Material.AIR && type != Material.CAVE_AIR && type != Material.VOID_AIR
-                && type != Material.SHORT_GRASS && type != Material.TALL_GRASS && type != Material.SNOW) return false;
-        return BuildProtection.canBuild(player, at);
+        return BuildSite.problem(player, at) == null;
     }
 
-    private boolean occupiedByEntity(Location at) {
-        return !at.getWorld().getNearbyEntities(new org.bukkit.util.BoundingBox(at.getX(), at.getY(), at.getZ(),
-                at.getX() + 1, at.getY() + 1, at.getZ() + 1)).isEmpty();
-    }
+    private boolean occupiedByEntity(Location at) { return BuildSite.occupied(at); }
 
     private void preview(Player player, BuildPlan plan) {
         for (int x : new int[]{0, plan.blueprint.width()}) for (int y : new int[]{0, plan.blueprint.height()}) for (int z : new int[]{0, plan.blueprint.depth()})
@@ -268,11 +253,9 @@ final class NyxBuildService {
     }
 
     private String previewMessage(BuildPlan plan) {
-        return "Schematic ready: " + plan.blueprint.width() + "x" + plan.blueprint.height() + "x" + plan.blueprint.depth()
-                + " (" + plan.blueprint.blocks().size() + " blocks) at " + plan.target.getWorld().getName() + " "
-                + plan.target.getBlockX() + " " + plan.target.getBlockY() + " " + plan.target.getBlockZ()
-                + ". Say 'Nyx, confirm build' within " + Math.max(0, (plan.expiresAt - System.currentTimeMillis()) / 1000)
-                + "s. /nyx build move relocates it to your feet.";
+        return "Got a spot for it. " + plan.blueprint.width() + "x" + plan.blueprint.height() + "x" + plan.blueprint.depth()
+                + " at " + plan.target.getBlockX() + ", " + plan.target.getBlockY() + ", " + plan.target.getBlockZ()
+                + ". Say 'Nyx, confirm build' when you're ready. /nyx build move picks another spot.";
     }
 
     private void sync(Runnable action) {

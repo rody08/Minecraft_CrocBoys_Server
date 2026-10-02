@@ -9,8 +9,8 @@ or deployed changes. No new benchmark result or replacement model is claimed her
 
 | Area | Recorded state |
 | --- | --- |
-| Server | Purpur 26.2 build 2622, Java 25; see [SERVER.md](SERVER.md) |
-| Plugin | Local BigOscieGF source is 0.5.2; last recorded live version is 0.5.1 |
+| Server | Purpur 26.2 build 2622, Java 25; 26.3 compatibility prepared locally; see [SERVER.md](SERVER.md) |
+| Plugin | Local BigOscieGF source is 0.6.1; live server reports 0.6.7 |
 | PC | AMD Ryzen 7 9800X3D, Radeon RX 6900 XT with 16 GB VRAM, about 32 GB RAM |
 | Inference | Ollama 0.34.0 using Vulkan |
 | Installed baseline | `hf.co/bartowski/magnum-v4-12b-GGUF:Q5_K_M` |

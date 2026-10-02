@@ -178,3 +178,28 @@ Use short entries for decisions that future plugin work should not rediscover.
   validation/commit ordering, UUID attribution, private player controls, and
   clear/disable races; moods remain separate from trust. Production deployment
   remains outside this task.
+
+## 2026-09-12 ? Repair Nyx terrain placement and personality regression
+
+- Context: The owner showed a generated car repeatedly failing the generic area check on a hillside; build status text also replaced Nyx's voice.
+- Decision: Validate only blocks actually changed, retain complete clipboard height/border limits, and fit initial/moved previews upward within a small bounded search. Never excavate or silently move a confirmed preview. Report the specific obstruction. Restore only the exact generic default persona, preserve custom settings, and use the configured nameplate for build results.
+- Consequences: Non-flat terrain no longer requires an entirely empty rectangular volume at the player's feet height. Some builds may stand above lower ground, with no foundation auto-created. Protection remains enforced. Version 0.6.1 is prepared locally; a production update still requires explicit deployment authorization.
+
+## 2026-10-01 — Defer the production 26.3 upgrade until cross-play is supported
+
+- Context: Purpur 26.3 build 2642 is experimental. A disposable Java 25 startup
+  using copies of all 29 active live plugin JARs reproduced hard failures in
+  WorldEdit 7.4.5, AxGraves 1.31.0, Floodgate build 140, Geyser 2.11.2, and
+  Citizens 2.0.43. WorldEdit 7.4.6 beta 2, AxGraves 1.32.1, and Floodgate build
+  141 passed a follow-up startup test, but Citizens still requires the 2.0.44
+  development line and the latest Geyser 2.11.3 still fails to enable. Geyser's
+  published Java support matrix remains at 26.2. Nyx depends on Citizens and the
+  server profile records Geyser/Floodgate cross-play.
+- Decision: Keep production on Purpur 26.2 build 2622. Do not upload the 26.3
+  server JAR or restart the live server until Geyser publishes Java 26.3 support,
+  then repeat the full plugin-set smoke test with current Citizens, Geyser,
+  Floodgate, WorldEdit, AxGraves, and NBT API builds. Retain Java 25.
+- Consequences: Production gameplay, Bedrock access, Nyx, and existing world data
+  remain unchanged. The local BigOscieGF 0.6.1 source compiles and passes its test
+  suite against Paper API 26.3 beta and current Citizens/WorldEdit snapshots, but
+  the live BigOscieGF 0.6.7 JAR is newer and was not replaced.

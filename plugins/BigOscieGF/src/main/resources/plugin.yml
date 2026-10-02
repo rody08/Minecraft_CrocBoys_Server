@@ -1,7 +1,7 @@
 name: BigOscieGF
 version: ${version}
 main: com.rxspicy.bigosciegf.NyxPlugin
-api-version: '26.2'
+api-version: '26.3'
 author: RXSpicy
 description: Citizens-powered AI goth companion NPC for BigOscie49.
 depend: [Citizens, WorldEdit]

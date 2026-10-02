@@ -65,7 +65,7 @@ import java.nio.file.Path;
 
 /**
  * Nyx - a Citizens-powered AI companion NPC for BigOscie49.
- * Built for Purpur/Paper 26.2 and Citizens 2.0.43+.
+ * Built for Purpur/Paper 26.3 and Citizens 2.0.44+.
  */
 public final class NyxPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
     private enum Mode { FOLLOW, STAY }
@@ -165,7 +165,7 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
         String version = getConfig().contains("config-version", true)
                 ? getConfig().getString("config-version", "")
                 : "";
-        if ("0.6.0".equals(version)) return;
+        if ("0.6.1".equals(version)) return;
 
         boolean changed = false;
         if (!getConfig().contains("ai.provider", true)) {
@@ -357,8 +357,9 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
         if (getConfig().getInt("ai.building.max-blocks", 1200) == 1200) getConfig().set("ai.building.max-blocks", 4096);
         if (!getConfig().contains("ai.building.max-dimension", true)) getConfig().set("ai.building.max-dimension", 32);
         if (!getConfig().contains("ai.building.blocks-per-tick", true)) getConfig().set("ai.building.blocks-per-tick", 100);
-        getConfig().set("config-version", "0.6.0");
-        if (changed || !"0.6.0".equals(version)) saveConfig();
+        getConfig().set("ai.personality", NyxPersonality.restore(getConfig().getString("ai.personality")));
+        getConfig().set("config-version", "0.6.1");
+        if (changed || !"0.6.1".equals(version)) saveConfig();
     }
 
     private String ownerName() {
@@ -1202,9 +1203,15 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
 
     private String sanitizeReply(String text, String playerName, String newestMessage) {
         String s = TranscriptEchoCleaner.clean(text, playerName, newestMessage, characterName());
+        s = NyxPersonality.dialogue(s);
         s = s.replaceFirst("(?i)^" + Pattern.quote(characterName()) + "\\s*:\\s*", "").trim();
         int max = Math.max(60, getConfig().getInt("ai.max-chat-characters", 180));
         return ChatReplyTrimmer.fit(s, max);
+    }
+
+    void tellBuild(Player player, String message) {
+        player.sendMessage(chatPrefix() + color(message));
+        addConversationLine(characterName() + ": " + message);
     }
 
     private void sayNearby(String message) {
@@ -1616,14 +1623,15 @@ public final class NyxPlugin extends JavaPlugin implements Listener, CommandExec
             sender.sendMessage(color("&eUsage: /nyx build <confirm|cancel|status|move|description>"));
             return;
         }
-        switch (args[1].toLowerCase(Locale.ROOT)) {
-            case "confirm" -> sender.sendMessage(color("&dNyx: &f" + buildService.confirm(player)));
-            case "cancel" -> sender.sendMessage(color("&dNyx: &f" + buildService.cancel(player)));
-            case "status" -> sender.sendMessage(color("&dNyx: &f" + buildService.status(player)));
-            case "move" -> sender.sendMessage(color("&dNyx: &f" + buildService.move(player)));
-            default -> sender.sendMessage(color("&dNyx: &f" + buildService.prepare(player,
-                    new BuildRequest(String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)), "", ""), currentTrust(player))));
-        }
+        String response = switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "confirm" -> buildService.confirm(player);
+            case "cancel" -> buildService.cancel(player);
+            case "status" -> buildService.status(player);
+            case "move" -> buildService.move(player);
+            default -> buildService.prepare(player,
+                    new BuildRequest(String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)), "", ""), currentTrust(player));
+        };
+        tellBuild(player, response);
     }
 
     @Override
